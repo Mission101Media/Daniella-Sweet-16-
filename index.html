@@ -6,7 +6,7 @@
     <title>Client Photo Review</title>
     <meta
       name="description"
-      content="A private client photo review gallery with full-quality downloads, selections, and notes."
+      content="A private client photo review gallery with fast previews, selections, and full-quality downloads."
     >
     <link rel="stylesheet" href="styles.css">
   </head>
@@ -26,7 +26,7 @@
       <section class="review-panel" aria-label="Gallery controls">
         <div class="search-wrap">
           <label for="searchInput">Search photos</label>
-          <input id="searchInput" type="search" placeholder="Search by number, file, or note">
+          <input id="searchInput" type="search" placeholder="Search by number, file, or folder">
         </div>
 
         <div class="folder-wrap">
@@ -62,7 +62,9 @@
       </form>
       <div class="lightbox-layout">
         <figure>
+          <button id="prevPhotoBtn" class="nav-btn prev-btn" type="button" aria-label="Previous photo">‹</button>
           <img id="lightboxImage" alt="">
+          <button id="nextPhotoBtn" class="nav-btn next-btn" type="button" aria-label="Next photo">›</button>
         </figure>
         <aside>
           <p id="lightboxMeta" class="eyebrow"></p>
@@ -70,8 +72,6 @@
           <div class="status-row">
             <button id="modalSelectBtn" type="button">Select</button>
           </div>
-          <label for="modalNote">Client note</label>
-          <textarea id="modalNote" rows="7" placeholder="Add comments for this photo"></textarea>
           <a id="modalDownload" class="download-link" href="#" download>Download original</a>
         </aside>
       </div>

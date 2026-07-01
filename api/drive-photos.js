@@ -92,15 +92,17 @@ async function listFolderImages({ apiKey, folderId, folderPath, visited }) {
 function toGalleryPhoto(file, index) {
   const label = String(index + 1).padStart(2, "0");
   const downloadUrl = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(file.id)}`;
-  const thumbnailUrl = `https://drive.google.com/thumbnail?id=${encodeURIComponent(file.id)}&sz=w1600`;
-  const previewUrl = `https://drive.google.com/thumbnail?id=${encodeURIComponent(file.id)}&sz=w2400`;
+  const smallThumbnailUrl = `https://drive.google.com/thumbnail?id=${encodeURIComponent(file.id)}&sz=w600`;
+  const mediumThumbnailUrl = `https://drive.google.com/thumbnail?id=${encodeURIComponent(file.id)}&sz=w1000`;
+  const previewUrl = `https://drive.google.com/thumbnail?id=${encodeURIComponent(file.id)}&sz=w2200`;
 
   return {
     id: `drive-${file.id}`,
     title: `Photo ${label}`,
     file: file.name,
     folderPath: file.folderPath,
-    displayUrl: thumbnailUrl,
+    displayUrl: smallThumbnailUrl,
+    displaySrcSet: `${smallThumbnailUrl} 600w, ${mediumThumbnailUrl} 1000w`,
     previewUrl,
     downloadUrl,
     width: file.imageMediaMetadata?.width || null,

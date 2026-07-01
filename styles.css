@@ -25,8 +25,7 @@ body {
 
 button,
 input,
-select,
-textarea {
+select {
   font: inherit;
 }
 
@@ -56,7 +55,6 @@ button:hover,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible,
 .download-link:focus-visible {
   outline: 3px solid rgba(15, 118, 110, 0.22);
   outline-offset: 2px;
@@ -146,19 +144,13 @@ label {
 }
 
 input,
-select,
-textarea {
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
   color: var(--ink);
   padding: 11px 12px;
-}
-
-textarea {
-  min-height: 160px;
-  resize: vertical;
 }
 
 .segmented,
@@ -297,7 +289,7 @@ textarea {
   position: absolute;
   right: 12px;
   top: 12px;
-  z-index: 2;
+  z-index: 3;
   width: 42px;
   padding: 0;
   border-color: rgba(255, 255, 255, 0.4);
@@ -314,6 +306,7 @@ textarea {
 }
 
 .lightbox figure {
+  position: relative;
   margin: 0;
   background: #171512;
   display: grid;
@@ -325,6 +318,40 @@ textarea {
   max-width: 100%;
   max-height: calc(100dvh - 40px);
   object-fit: contain;
+}
+
+.nav-btn {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 48px;
+  height: 64px;
+  min-height: 0;
+  padding: 0;
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(21, 21, 21, 0.68);
+  color: #fff;
+  font-size: 2.25rem;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.nav-btn:hover {
+  transform: translateY(-50%);
+  background: rgba(21, 21, 21, 0.84);
+}
+
+.nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.prev-btn {
+  left: 14px;
+}
+
+.next-btn {
+  right: 14px;
 }
 
 .lightbox aside {
@@ -369,6 +396,11 @@ textarea {
   .lightbox aside {
     border-left: 0;
     border-top: 1px solid var(--line);
+  }
+
+  .nav-btn {
+    width: 42px;
+    height: 56px;
   }
 }
 

@@ -7,8 +7,8 @@ A client gallery for reviewing, selecting, commenting on, and downloading full-q
 - View the full gallery on desktop or phone.
 - Filter the gallery by Google Drive folder.
 - Open any image in a large preview.
+- Move through the preview with previous and next navigation.
 - Select favorites.
-- Leave notes on each photo.
 - Download selected photos, all photos, or one original photo at a time.
 - Export a CSV review summary.
 

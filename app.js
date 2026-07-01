@@ -61,9 +61,10 @@ const lightbox = document.querySelector("#lightbox");
 const lightboxImage = document.querySelector("#lightboxImage");
 const lightboxTitle = document.querySelector("#lightboxTitle");
 const lightboxMeta = document.querySelector("#lightboxMeta");
-const modalNote = document.querySelector("#modalNote");
 const modalDownload = document.querySelector("#modalDownload");
 const modalSelectBtn = document.querySelector("#modalSelectBtn");
+const prevPhotoBtn = document.querySelector("#prevPhotoBtn");
+const nextPhotoBtn = document.querySelector("#nextPhotoBtn");
 
 document.querySelector("#galleryTitle").textContent = galleryTitle;
 totalCount.textContent = photos.length;
@@ -86,8 +87,14 @@ document.querySelector("#downloadSelectedBtn").addEventListener("click", () => d
 document.querySelector("#downloadAllBtn").addEventListener("click", () => downloadPhotos(photos));
 document.querySelector("#exportBtn").addEventListener("click", exportReview);
 document.querySelector("#clearReviewBtn").addEventListener("click", clearReview);
-modalNote.addEventListener("input", () => updatePhoto(activePhoto.id, { note: modalNote.value }));
 modalSelectBtn.addEventListener("click", () => toggleSelected(activePhoto.id));
+prevPhotoBtn.addEventListener("click", () => navigateLightbox(-1));
+nextPhotoBtn.addEventListener("click", () => navigateLightbox(1));
+document.addEventListener("keydown", (event) => {
+  if (!lightbox.open) return;
+  if (event.key === "ArrowLeft") navigateLightbox(-1);
+  if (event.key === "ArrowRight") navigateLightbox(1);
+});
 
 renderGallery();
 loadDrivePhotos();
@@ -105,7 +112,7 @@ function saveState() {
 }
 
 function getReview(photoId) {
-  return state[photoId] || { selected: false, note: "" };
+  return state[photoId] || { selected: false };
 }
 
 function updatePhoto(photoId, updates) {
@@ -131,7 +138,7 @@ function filteredPhotos() {
   const term = searchInput.value.trim().toLowerCase();
   return photos.filter((photo) => {
     const review = getReview(photo.id);
-    const searchable = [photo.title, photo.file, photo.folderPath, review.note].join(" ").toLowerCase();
+    const searchable = [photo.title, photo.file, photo.folderPath].join(" ").toLowerCase();
     const matchesSearch = !term || searchable.includes(term);
     const matchesFolder = activeFolder === "all" || photo.folderPath === activeFolder;
     const matchesFilter =
@@ -160,23 +167,22 @@ function photoCard(photo) {
   const review = getReview(photo.id);
   const statusLabel = review.selected ? "Selected" : "Review";
   const cardClasses = ["photo-card", review.selected ? "selected" : ""].join(" ");
-  const note = review.note ? escapeHtml(review.note) : "No note yet";
   const folderName = photo.folderPath ? escapeHtml(photo.folderPath) : "";
   const imageUrl = encodeURI(photo.displayUrl || photo.previewUrl || photo.downloadUrl);
+  const srcset = photo.displaySrcSet ? ` srcset="${escapeHtml(photo.displaySrcSet)}"` : "";
   const downloadUrl = encodeURI(photo.downloadUrl || photo.previewUrl || photo.displayUrl);
 
   return `
     <article class="${cardClasses}">
       <button class="preview-btn" type="button" data-open="${photo.id}" aria-label="Open ${photo.title}">
         <figure>
-          <img src="${imageUrl}" alt="${photo.title}" loading="lazy">
+          <img src="${imageUrl}"${srcset} sizes="(max-width: 560px) 100vw, 320px" alt="${photo.title}" loading="lazy" decoding="async">
           <span class="badge">${statusLabel}</span>
         </figure>
       </button>
       <div class="photo-info">
         <h2>${photo.title}</h2>
         ${folderName ? `<p class="folder-name">${folderName}</p>` : ""}
-        <p>${note}</p>
         <div class="card-actions">
           <button class="select-btn" type="button" data-select="${photo.id}">${review.selected ? "Selected" : "Select"}</button>
           <a class="download-link" href="${downloadUrl}" download target="_blank" rel="noopener">Download</a>
@@ -215,17 +221,49 @@ function openLightbox(photoId) {
   lightboxImage.alt = activePhoto.title;
   lightboxTitle.textContent = activePhoto.title;
   lightboxMeta.textContent = review.selected ? "Selected" : "Ready for review";
-  modalNote.value = review.note || "";
   modalDownload.href = downloadUrl;
   modalDownload.download = activePhoto.file;
   updateModalActions(activePhoto);
-  lightbox.showModal();
+  preloadAdjacentPhotos();
+  if (!lightbox.open) {
+    lightbox.showModal();
+  }
 }
 
 function updateModalActions(photo) {
   const review = getReview(photo.id);
+  const visiblePhotos = filteredPhotos();
   modalSelectBtn.textContent = review.selected ? "Selected" : "Select";
   lightboxMeta.textContent = review.selected ? "Selected" : "Ready for review";
+  const hasNavigation = visiblePhotos.length > 1;
+  prevPhotoBtn.disabled = !hasNavigation;
+  nextPhotoBtn.disabled = !hasNavigation;
+}
+
+function navigateLightbox(direction) {
+  if (!activePhoto) return;
+  const visiblePhotos = filteredPhotos();
+  if (visiblePhotos.length < 2) return;
+
+  const currentIndex = visiblePhotos.findIndex((photo) => photo.id === activePhoto.id);
+  if (currentIndex === -1) return;
+
+  const nextIndex = (currentIndex + direction + visiblePhotos.length) % visiblePhotos.length;
+  openLightbox(visiblePhotos[nextIndex].id);
+}
+
+function preloadAdjacentPhotos() {
+  const visiblePhotos = filteredPhotos();
+  const currentIndex = visiblePhotos.findIndex((photo) => photo.id === activePhoto?.id);
+  if (currentIndex === -1 || visiblePhotos.length < 2) return;
+
+  [-1, 1].forEach((offset) => {
+    const photo = visiblePhotos[(currentIndex + offset + visiblePhotos.length) % visiblePhotos.length];
+    const preloadUrl = photo.previewUrl || photo.displayUrl;
+    if (!preloadUrl) return;
+    const image = new Image();
+    image.src = preloadUrl;
+  });
 }
 
 function downloadPhotos(photoList) {
@@ -249,10 +287,10 @@ function downloadPhotos(photoList) {
 }
 
 function exportReview() {
-  const header = ["Photo", "Folder", "File", "Selected", "Note", "Source"];
+  const header = ["Photo", "Folder", "File", "Selected", "Source"];
   const rows = photos.map((photo) => {
     const review = getReview(photo.id);
-    return [photo.title, photo.folderPath || "", photo.file, review.selected ? "Yes" : "No", review.note || "", photo.source || ""];
+    return [photo.title, photo.folderPath || "", photo.file, review.selected ? "Yes" : "No", photo.source || ""];
   });
   const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -290,7 +328,7 @@ async function loadDrivePhotos() {
 }
 
 function clearReview() {
-  const confirmed = confirm("Clear all selections and notes on this device?");
+  const confirmed = confirm("Clear all selections on this device?");
   if (!confirmed) return;
 
   Object.keys(state).forEach((photoId) => delete state[photoId]);
