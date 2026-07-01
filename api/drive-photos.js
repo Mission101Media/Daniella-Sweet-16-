@@ -1,5 +1,5 @@
 const DEFAULT_FOLDER_ID = "1MzdWlTbZZ7OrB0MbTtUsEjNtYr3xYUpz";
-const IMAGE_QUERY = "mimeType contains 'image/' and trashed = false";
+const FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 
 module.exports = async function handler(request, response) {
   const apiKey = process.env.GOOGLE_DRIVE_API_KEY;
@@ -14,7 +14,7 @@ module.exports = async function handler(request, response) {
   }
 
   try {
-    const files = await listDriveImages({ apiKey, folderId });
+    const files = await listDriveImagesRecursively({ apiKey, folderId });
     response.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=1800");
     response.status(200).json({
       folderId,
@@ -29,14 +29,28 @@ module.exports = async function handler(request, response) {
   }
 };
 
-async function listDriveImages({ apiKey, folderId }) {
-  const files = [];
+async function listDriveImagesRecursively({ apiKey, folderId }) {
+  const visited = new Set();
+  const files = await listFolderImages({ apiKey, folderId, folderPath: "", visited });
+  return files.sort((a, b) => {
+    const folderCompare = a.folderPath.localeCompare(b.folderPath, undefined, { numeric: true });
+    if (folderCompare !== 0) return folderCompare;
+    return a.name.localeCompare(b.name, undefined, { numeric: true });
+  });
+}
+
+async function listFolderImages({ apiKey, folderId, folderPath, visited }) {
+  if (visited.has(folderId)) return [];
+  visited.add(folderId);
+
+  const images = [];
+  const folders = [];
   let pageToken = "";
 
   do {
     const params = new URLSearchParams({
       key: apiKey,
-      q: `'${folderId}' in parents and ${IMAGE_QUERY}`,
+      q: `'${folderId}' in parents and trashed = false and (mimeType contains 'image/' or mimeType = '${FOLDER_MIME_TYPE}')`,
       fields: "nextPageToken,files(id,name,mimeType,size,imageMediaMetadata(width,height))",
       orderBy: "name_natural",
       pageSize: "1000",
@@ -55,11 +69,24 @@ async function listDriveImages({ apiKey, folderId }) {
       throw new Error(data.error?.message || "Unable to read the Google Drive folder.");
     }
 
-    files.push(...(data.files || []));
+    for (const file of data.files || []) {
+      if (file.mimeType === FOLDER_MIME_TYPE) {
+        folders.push(file);
+      } else {
+        images.push({ ...file, folderPath: folderPath || "Main folder" });
+      }
+    }
+
     pageToken = data.nextPageToken || "";
   } while (pageToken);
 
-  return files;
+  for (const folder of folders) {
+    const nextPath = folderPath ? `${folderPath} / ${folder.name}` : folder.name;
+    const nestedImages = await listFolderImages({ apiKey, folderId: folder.id, folderPath: nextPath, visited });
+    images.push(...nestedImages);
+  }
+
+  return images;
 }
 
 function toGalleryPhoto(file, index) {
@@ -72,6 +99,7 @@ function toGalleryPhoto(file, index) {
     id: `drive-${file.id}`,
     title: `Photo ${label}`,
     file: file.name,
+    folderPath: file.folderPath,
     displayUrl: thumbnailUrl,
     previewUrl,
     downloadUrl,

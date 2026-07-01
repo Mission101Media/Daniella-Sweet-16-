@@ -5,6 +5,7 @@ A client gallery for reviewing, selecting, commenting on, and downloading full-q
 ## What the client can do
 
 - View the full gallery on desktop or phone.
+- Filter the gallery by Google Drive folder.
 - Open any image in a large preview.
 - Select favorites.
 - Leave notes on each photo.
@@ -20,7 +21,7 @@ A client gallery for reviewing, selecting, commenting on, and downloading full-q
 5. Add a Vercel environment variable named `GOOGLE_DRIVE_API_KEY`.
 6. Deploy.
 
-The app reads this Google Drive folder by default:
+The app reads this Google Drive folder by default, including image files inside nested folders:
 
 `https://drive.google.com/drive/folders/1MzdWlTbZZ7OrB0MbTtUsEjNtYr3xYUpz`
 
@@ -40,4 +41,5 @@ Optional: if you want to use a different folder later, add `GOOGLE_DRIVE_FOLDER_
 
 - Change the gallery title in `app.js` by editing `galleryTitle`.
 - Replace files in the Google Drive folder to update the live gallery.
+- Use folders inside Google Drive to separate albums or sections.
 - Keep the local `Photos` folder only as a preview fallback when Drive is not connected.

@@ -39,6 +39,7 @@ const localPhotos = [
   displayUrl: `Photos/${file}`,
   previewUrl: `Photos/${file}`,
   downloadUrl: `Photos/${file}`,
+  folderPath: "Local preview",
   source: "local"
 }));
 
@@ -46,11 +47,13 @@ const stateKey = "client-photo-review-state-v1";
 const state = loadState();
 let photos = localPhotos;
 let activeFilter = "all";
+let activeFolder = "all";
 let activePhoto = null;
 
 const grid = document.querySelector("#galleryGrid");
 const emptyState = document.querySelector("#emptyState");
 const searchInput = document.querySelector("#searchInput");
+const folderFilter = document.querySelector("#folderFilter");
 const selectedCount = document.querySelector("#selectedCount");
 const totalCount = document.querySelector("#totalCount");
 const feedStatus = document.querySelector("#feedStatus");
@@ -75,6 +78,10 @@ document.querySelectorAll(".filter-btn").forEach((button) => {
 });
 
 searchInput.addEventListener("input", renderGallery);
+folderFilter.addEventListener("change", () => {
+  activeFolder = folderFilter.value;
+  renderGallery();
+});
 document.querySelector("#downloadSelectedBtn").addEventListener("click", () => downloadPhotos(selectedPhotos()));
 document.querySelector("#downloadAllBtn").addEventListener("click", () => downloadPhotos(photos));
 document.querySelector("#exportBtn").addEventListener("click", exportReview);
@@ -124,13 +131,14 @@ function filteredPhotos() {
   const term = searchInput.value.trim().toLowerCase();
   return photos.filter((photo) => {
     const review = getReview(photo.id);
-    const searchable = [photo.title, photo.file, review.note].join(" ").toLowerCase();
+    const searchable = [photo.title, photo.file, photo.folderPath, review.note].join(" ").toLowerCase();
     const matchesSearch = !term || searchable.includes(term);
+    const matchesFolder = activeFolder === "all" || photo.folderPath === activeFolder;
     const matchesFilter =
       activeFilter === "all" ||
       (activeFilter === "selected" && review.selected);
 
-    return matchesSearch && matchesFilter;
+    return matchesSearch && matchesFolder && matchesFilter;
   });
 }
 
@@ -153,6 +161,7 @@ function photoCard(photo) {
   const statusLabel = review.selected ? "Selected" : "Review";
   const cardClasses = ["photo-card", review.selected ? "selected" : ""].join(" ");
   const note = review.note ? escapeHtml(review.note) : "No note yet";
+  const folderName = photo.folderPath ? escapeHtml(photo.folderPath) : "";
   const imageUrl = encodeURI(photo.displayUrl || photo.previewUrl || photo.downloadUrl);
   const downloadUrl = encodeURI(photo.downloadUrl || photo.previewUrl || photo.displayUrl);
 
@@ -166,6 +175,7 @@ function photoCard(photo) {
       </button>
       <div class="photo-info">
         <h2>${photo.title}</h2>
+        ${folderName ? `<p class="folder-name">${folderName}</p>` : ""}
         <p>${note}</p>
         <div class="card-actions">
           <button class="select-btn" type="button" data-select="${photo.id}">${review.selected ? "Selected" : "Select"}</button>
@@ -179,6 +189,19 @@ function photoCard(photo) {
 function updateCounts() {
   selectedCount.textContent = selectedPhotos().length;
   totalCount.textContent = photos.length;
+}
+
+function updateFolderFilter() {
+  const folders = [...new Set(photos.map((photo) => photo.folderPath).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true })
+  );
+  const currentFolder = folders.includes(activeFolder) ? activeFolder : "all";
+  folderFilter.innerHTML = [
+    '<option value="all">All folders</option>',
+    ...folders.map((folder) => `<option value="${escapeHtml(folder)}">${escapeHtml(folder)}</option>`)
+  ].join("");
+  folderFilter.value = currentFolder;
+  activeFolder = currentFolder;
 }
 
 function openLightbox(photoId) {
@@ -226,10 +249,10 @@ function downloadPhotos(photoList) {
 }
 
 function exportReview() {
-  const header = ["Photo", "File", "Selected", "Note", "Source"];
+  const header = ["Photo", "Folder", "File", "Selected", "Note", "Source"];
   const rows = photos.map((photo) => {
     const review = getReview(photo.id);
-    return [photo.title, photo.file, review.selected ? "Yes" : "No", review.note || "", photo.source || ""];
+    return [photo.title, photo.folderPath || "", photo.file, review.selected ? "Yes" : "No", review.note || "", photo.source || ""];
   });
   const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -246,7 +269,8 @@ async function loadDrivePhotos() {
   try {
     const response = await fetch("/api/drive-photos");
     if (!response.ok) {
-      throw new Error("Drive photos are not configured yet.");
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.message || "Drive photos are not configured yet.");
     }
 
     const data = await response.json();
@@ -255,10 +279,12 @@ async function loadDrivePhotos() {
     }
 
     photos = data.photos;
+    updateFolderFilter();
     feedStatus.textContent = `Loaded ${photos.length} photos from Google Drive.`;
     renderGallery();
   } catch (error) {
-    feedStatus.textContent = "Using local preview photos until Google Drive is connected in Vercel.";
+    updateFolderFilter();
+    feedStatus.textContent = `Using local preview photos. Google Drive message: ${error.message}`;
     renderGallery();
   }
 }
@@ -275,6 +301,8 @@ function clearReview() {
   }
   searchInput.value = "";
   activeFilter = "all";
+  activeFolder = "all";
+  folderFilter.value = "all";
   document.querySelectorAll(".filter-btn").forEach((button) => {
     button.classList.toggle("active", button.dataset.filter === "all");
   });
