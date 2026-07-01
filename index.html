@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Client Photo Review</title>
+    <meta
+      name="description"
+      content="A private client photo review gallery with full-quality downloads, selections, and notes."
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Private gallery</p>
+        <h1 id="galleryTitle">Client Photo Review</h1>
+      </div>
+      <div class="summary" aria-live="polite">
+        <span><strong id="totalCount">0</strong> photos</span>
+        <span><strong id="selectedCount">0</strong> selected</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="review-panel" aria-label="Gallery controls">
+        <div class="search-wrap">
+          <label for="searchInput">Search photos</label>
+          <input id="searchInput" type="search" placeholder="Search by number, file, or note">
+        </div>
+
+        <div class="segmented" aria-label="Filter photos">
+          <button class="filter-btn active" type="button" data-filter="all">All</button>
+          <button class="filter-btn" type="button" data-filter="selected">Selected</button>
+        </div>
+
+        <div class="actions">
+          <button id="downloadSelectedBtn" class="primary-btn" type="button">Download selected</button>
+          <button id="downloadAllBtn" type="button">Download all</button>
+          <button id="exportBtn" type="button">Export review</button>
+          <button id="clearReviewBtn" type="button">Clear review</button>
+        </div>
+        <p id="feedStatus" class="feed-status" aria-live="polite">Loading Google Drive photos...</p>
+      </section>
+
+      <section class="gallery-shell" aria-label="Photo gallery">
+        <div id="galleryGrid" class="gallery-grid"></div>
+        <p id="emptyState" class="empty-state" hidden>No photos match this view.</p>
+      </section>
+    </main>
+
+    <dialog id="lightbox" class="lightbox">
+      <form method="dialog">
+        <button class="close-btn" aria-label="Close preview">×</button>
+      </form>
+      <div class="lightbox-layout">
+        <figure>
+          <img id="lightboxImage" alt="">
+        </figure>
+        <aside>
+          <p id="lightboxMeta" class="eyebrow"></p>
+          <h2 id="lightboxTitle"></h2>
+          <div class="status-row">
+            <button id="modalSelectBtn" type="button">Select</button>
+          </div>
+          <label for="modalNote">Client note</label>
+          <textarea id="modalNote" rows="7" placeholder="Add comments for this photo"></textarea>
+          <a id="modalDownload" class="download-link" href="#" download>Download original</a>
+        </aside>
+      </div>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
