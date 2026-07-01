@@ -1,4 +1,4 @@
-const galleryTitle = "Client Photo Review";
+const galleryTitle = "Client Photo Preview";
 
 const localPhotos = [
   "DSC04612.JPG",
@@ -161,11 +161,17 @@ function renderGallery() {
   grid.querySelectorAll("[data-select]").forEach((button) => {
     button.addEventListener("click", () => toggleSelected(button.dataset.select));
   });
+  grid.querySelectorAll("img").forEach((image) => {
+    image.addEventListener("error", () => {
+      image.classList.add("is-broken");
+      image.closest(".photo-card")?.classList.add("has-broken-image");
+    });
+  });
 }
 
 function photoCard(photo) {
   const review = getReview(photo.id);
-  const statusLabel = review.selected ? "Selected" : "Review";
+  const statusLabel = review.selected ? "Selected" : "Preview";
   const cardClasses = ["photo-card", review.selected ? "selected" : ""].join(" ");
   const folderName = photo.folderPath ? escapeHtml(photo.folderPath) : "";
   const imageUrl = encodeURI(photo.displayUrl || photo.previewUrl || photo.downloadUrl);
@@ -177,6 +183,7 @@ function photoCard(photo) {
       <button class="preview-btn" type="button" data-open="${photo.id}" aria-label="Open ${photo.title}">
         <figure>
           <img src="${imageUrl}"${srcset} sizes="(max-width: 560px) 100vw, 320px" alt="${photo.title}" loading="lazy" decoding="async">
+          <span class="image-fallback">Preview unavailable</span>
           <span class="badge">${statusLabel}</span>
         </figure>
       </button>
@@ -220,7 +227,7 @@ function openLightbox(photoId) {
   lightboxImage.src = previewUrl;
   lightboxImage.alt = activePhoto.title;
   lightboxTitle.textContent = activePhoto.title;
-  lightboxMeta.textContent = review.selected ? "Selected" : "Ready for review";
+  lightboxMeta.textContent = review.selected ? "Selected" : "Ready for preview";
   modalDownload.href = downloadUrl;
   modalDownload.download = activePhoto.file;
   updateModalActions(activePhoto);
@@ -234,7 +241,7 @@ function updateModalActions(photo) {
   const review = getReview(photo.id);
   const visiblePhotos = filteredPhotos();
   modalSelectBtn.textContent = review.selected ? "Selected" : "Select";
-  lightboxMeta.textContent = review.selected ? "Selected" : "Ready for review";
+  lightboxMeta.textContent = review.selected ? "Selected" : "Ready for preview";
   const hasNavigation = visiblePhotos.length > 1;
   prevPhotoBtn.disabled = !hasNavigation;
   nextPhotoBtn.disabled = !hasNavigation;
